@@ -1,0 +1,9 @@
+services:
+  utmshop:
+    build:
+      context: .
+    ports:
+      - "5000:5000"   # HTTP  → http://localhost:5000/swagger
+    environment:
+      ASPNETCORE_URLS: "http://+:5000"
+      ASPNETCORE_ENVIRONMENT: "Development"   # keeps Swagger enabled
