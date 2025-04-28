@@ -1,4 +1,5 @@
 from emails import EmailFetcher, EmailDownloader, EmailSender
+from emails import EmailFetcher, EmailDownloader
 import credentials as cr
 
 class EmailClientApp:

@@ -187,6 +187,7 @@ class EmailDownloader(EmailFetcher):
                 return attachment_path, email_path
         print("No unread email matching the subject was found.")
         return None
+
 class EmailSender(EmailLogin):
     def __init__(self, username):
         super().__init__(username, protocol="SMTP") 
