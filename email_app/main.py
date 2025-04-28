@@ -1,4 +1,4 @@
-from emails import EmailFetcher, EmailDownloader
+from emails import EmailFetcher, EmailDownloader, EmailSender
 import credentials as cr
 
 class EmailClientApp:
@@ -9,6 +9,10 @@ class EmailClientApp:
             "1": self.fetch_emails_imap,
             "2": self.fetch_emails_pop3,
             "3": self.download_unread_attachment,
+            "4": self.send_simple_email,
+            "5": self.send_email_with_attachment,
+            "6": self.send_email_with_multi_attachments,
+            "7": self.send_email_with_reply_to,
             "0": self.exit_program
         }
 
@@ -17,6 +21,10 @@ class EmailClientApp:
         print("1. Fetch 10 Emails Using IMAP")
         print("2. Fetch 10 Emails Using POP3")
         print("3. Download unread email with attachment (IMAP only)")
+        print("4. Send simple email")
+        print("5. Send email with attachment")
+        print("6. Send email with multiple attachments")
+        print("7. Send email with Reply-To")
         print("0. Exit")
 
     def fetch_emails_imap(self):
@@ -46,6 +54,46 @@ class EmailClientApp:
             print("\033[32m Email and attachment saved successfully at: \033[0m", email_path, attachment_path)
         else:
             print("\033[31m No matching unread email with attachment found. \033[0m")
+        client.close()
+
+    def send_simple_email(self):
+        client = EmailSender(self.username)
+        client.login()
+        to_email = input("Enter recipient email: ")
+        subject = input("Enter subject: ")
+        body = input("Enter body: ")
+        client.send_email_txt(subject, body, to_email)
+        client.close()
+
+    def send_email_with_attachment(self):
+        client = EmailSender(self.username)
+        client.login()
+        to_email = input("Enter recipient email: ")
+        subject = input("Enter subject: ")
+        body = input("Enter body: ")
+        attach_path = input("Enter path to attachment: ")
+        client.send_email_attach(subject, body, to_email, attach_path)
+        client.close()
+
+    def send_email_with_reply_to(self):
+        client = EmailSender(self.username)
+        client.login()
+        to_email = input("Enter recipient email: ")
+        subject = input("Enter subject: ")
+        body = input("Enter body: ")
+        reply_to = input("Enter Reply-To email: ")
+        client.send_email_with_reply_to(subject, body, to_email, reply_to)
+        client.close()
+
+    def send_email_with_multi_attachments(self):
+        client = EmailSender(self.username)
+        client.login()
+        to_email = input("Enter recipient email: ")
+        subject = input("Enter subject: ")
+        body = input("Enter body: ")
+        attach_paths = input("Enter paths to attachments separated by commas: ").split(',')
+        attach_paths = [path.strip() for path in attach_paths]
+        client.send_email_multi_attach(subject, body, to_email, attach_paths)
         client.close()
 
     def exit_program(self):
