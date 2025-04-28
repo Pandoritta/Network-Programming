@@ -6,6 +6,12 @@ from imaplib import IMAP4_SSL
 import credentials as cr
 import base64 
 import os     
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from email.mime.text import MIMEText
+import mimetypes
 
 tokenito = get_token.OAuthToken()
 get_tokenito = tokenito.get_oauth_credentials()
@@ -182,4 +188,100 @@ class EmailDownloader(EmailFetcher):
         print("No unread email matching the subject was found.")
         return None
 
+class EmailSender(EmailLogin):
+    def __init__(self, username):
+        super().__init__(username, protocol="SMTP") 
 
+    def login(self):
+        self.mail = smtplib.SMTP_SSL("smtp.gmail.com")
+        self.mail.ehlo()
+        self.mail.docmd('AUTH', 'XOAUTH2 ' + self.auth_string_base64())
+        return True
+
+    def send_email_txt(self, subject, body, to_email):
+        msg = MIMEMultipart()
+        msg['From'] = self.username
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            self.mail.sendmail(self.username, to_email, msg.as_string())
+            print(f"Email sent to {to_email}")
+            return True
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return False
+
+    def manage_attach(self, msg, attach_path):
+        if attach_path:
+            ctype, encoding = mimetypes.guess_type(attach_path)
+            if ctype is None or encoding is not None:
+                ctype = 'application/octet-stream'
+            maintype, subtype = ctype.split('/', 1)
+
+            with open(attach_path, 'rb') as f:
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(f.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attach_path))
+                msg.attach(part)
+        return msg
+            
+
+    def send_email_attach(self, subject, body, to_email, attach_path):
+        msg = MIMEMultipart()
+        msg['From'] = self.username
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'plain'))
+        self.manage_attach(msg, attach_path)
+        try:
+            self.mail.sendmail(self.username, to_email, msg.as_string())
+            print(f"Email with attachment sent to {to_email}")
+            return True
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return False
+        
+    def send_email_with_reply_to(self, subject, body, to_email, reply_to):
+        msg = MIMEMultipart()
+        msg['From'] = self.username
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.add_header('Reply-To', reply_to)
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            self.mail.sendmail(self.username, to_email, msg.as_string())
+            print(f"Email sent to {to_email} with Reply-To header")
+            return True
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+            return False
+        
+    def send_email_multi_attach(self, subject, body, to_email, attachments=None):
+        msg = MIMEMultipart()
+        msg['From'] = self.username
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(body, 'plain'))
+
+        if attachments:
+            for attach_path in attachments:
+                if os.path.isfile(attach_path):
+                    self.manage_attach(msg, attach_path)
+                else:
+                    print(f"Warning: Attachment {attach_path} does not exist and was skipped.")
+
+        try:
+            self.mail.sendmail(self.username, to_email, msg.as_string())
+            print(f"Email with {len(attachments) if attachments else 0} attachments sent to {to_email}")
+            return True
+        except Exception as e:
+            print(f"Failed to send email with multiple attachments: {str(e)}")
+            return False
